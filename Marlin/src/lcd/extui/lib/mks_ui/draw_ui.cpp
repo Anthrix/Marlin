@@ -75,7 +75,7 @@ extern lv_group_t *g;
 extern void LCD_IO_WriteData(uint16_t RegValue);
 
 static const char custom_gcode_command[][100] = {
-  "G28\nG29\nM500",
+  "G29N\nM500",
   "G28",
   "G28",
   "G28",
@@ -125,16 +125,16 @@ void gCfgItems_init() {
   gCfgItems.pausePosX         = -1;
   gCfgItems.pausePosY         = -1;
   gCfgItems.pausePosZ         = 5;
-  gCfgItems.levelingPos[0][0] = X_MIN_POS + 30;
-  gCfgItems.levelingPos[0][1] = Y_MIN_POS + 30;
-  gCfgItems.levelingPos[1][0] = X_MAX_POS - 30;
-  gCfgItems.levelingPos[1][1] = Y_MIN_POS + 30;
-  gCfgItems.levelingPos[2][0] = X_MAX_POS - 30;
-  gCfgItems.levelingPos[2][1] = Y_MAX_POS - 30;
-  gCfgItems.levelingPos[3][0] = X_MIN_POS + 30;
-  gCfgItems.levelingPos[3][1] = Y_MAX_POS - 30;
-  gCfgItems.levelingPos[4][0] = X_BED_SIZE / 2;
-  gCfgItems.levelingPos[4][1] = Y_BED_SIZE / 2;
+  gCfgItems.trammingPos[0][X_AXIS] = X_MIN_POS + 30;
+  gCfgItems.trammingPos[0][Y_AXIS] = Y_MIN_POS + 30;
+  gCfgItems.trammingPos[1][X_AXIS] = X_MAX_POS - 30;
+  gCfgItems.trammingPos[1][Y_AXIS] = Y_MIN_POS + 30;
+  gCfgItems.trammingPos[2][X_AXIS] = X_MAX_POS - 30;
+  gCfgItems.trammingPos[2][Y_AXIS] = Y_MAX_POS - 30;
+  gCfgItems.trammingPos[3][X_AXIS] = X_MIN_POS + 30;
+  gCfgItems.trammingPos[3][Y_AXIS] = Y_MAX_POS - 30;
+  gCfgItems.trammingPos[4][X_AXIS] = X_BED_SIZE / 2;
+  gCfgItems.trammingPos[4][Y_AXIS] = Y_BED_SIZE / 2;
   gCfgItems.cloud_enable      = false;
   gCfgItems.wifi_mode_sel = STA_MODEL;
   gCfgItems.fileSysType   = FILE_SYS_SD;
@@ -143,7 +143,7 @@ void gCfgItems_init() {
   gCfgItems.filamentchange_load_speed    = 1000;
   gCfgItems.filamentchange_unload_length = 200;
   gCfgItems.filamentchange_unload_speed  = 1000;
-  gCfgItems.filament_limit_temper        = 200;
+  gCfgItems.filament_limit_temp          = 200;
 
   gCfgItems.encoder_enable = true;
 
@@ -179,24 +179,24 @@ void gCfgItems_init() {
 
 void ui_cfg_init() {
   uiCfg.curTempType         = 0;
-  uiCfg.curSprayerChoose    = 0;
+  uiCfg.extruderIndex       = 0;
   uiCfg.stepHeat            = 10;
-  uiCfg.leveling_first_time = 0;
-  uiCfg.para_ui_page        = 0;
+  uiCfg.leveling_first_time = false;
+  uiCfg.para_ui_page        = false;
   uiCfg.extruStep           = 5;
   uiCfg.extruSpeed          = 10;
   uiCfg.move_dist           = 1;
   uiCfg.moveSpeed           = 3000;
   uiCfg.stepPrintSpeed      = 10;
-  uiCfg.command_send        = 0;
+  uiCfg.command_send        = false;
   uiCfg.dialogType          = 0;
-  uiCfg.filament_heat_completed_load = 0;
+  uiCfg.filament_heat_completed_load = false;
   uiCfg.filament_rate                = 0;
-  uiCfg.filament_loading_completed   = 0;
-  uiCfg.filament_unloading_completed = 0;
-  uiCfg.filament_loading_time_flg    = 0;
+  uiCfg.filament_loading_completed   = false;
+  uiCfg.filament_unloading_completed = false;
+  uiCfg.filament_loading_time_flg    = false;
   uiCfg.filament_loading_time_cnt    = 0;
-  uiCfg.filament_unloading_time_flg  = 0;
+  uiCfg.filament_unloading_time_flg  = false;
   uiCfg.filament_unloading_time_cnt  = 0;
 
   #if ENABLED(MKS_WIFI_MODULE)
@@ -226,8 +226,8 @@ void ui_cfg_init() {
     uiCfg.cloud_port = 10086;
   #endif
 
-  uiCfg.filament_loading_time = (uint32_t)((gCfgItems.filamentchange_load_length * 60.0 / gCfgItems.filamentchange_load_speed) + 0.5);
-  uiCfg.filament_unloading_time = (uint32_t)((gCfgItems.filamentchange_unload_length * 60.0 / gCfgItems.filamentchange_unload_speed) + 0.5);
+  uiCfg.filament_loading_time = (uint32_t)((gCfgItems.filamentchange_load_length * 60.0f / gCfgItems.filamentchange_load_speed) + 0.5f);
+  uiCfg.filament_unloading_time = (uint32_t)((gCfgItems.filamentchange_unload_length * 60.0f / gCfgItems.filamentchange_unload_speed) + 0.5f);
 }
 
 void update_spi_flash() {
@@ -889,7 +889,7 @@ void GUI_RefreshPage() {
               lv_draw_wifi_tips();
 
             }
-            if (tips_disp.timer_count >= 30 * 1000) {
+            if (tips_disp.timer_count >= SEC_TO_MS(30)) {
               tips_disp.timer = TIPS_TIMER_STOP;
               tips_disp.timer_count = 0;
               lv_clear_wifi_tips();
@@ -898,7 +898,7 @@ void GUI_RefreshPage() {
             }
             break;
           case TIPS_TYPE_TAILED_JOIN:
-            if (tips_disp.timer_count >= 3 * 1000) {
+            if (tips_disp.timer_count >= SEC_TO_MS(3)) {
               tips_disp.timer = TIPS_TIMER_STOP;
               tips_disp.timer_count = 0;
 
@@ -908,7 +908,7 @@ void GUI_RefreshPage() {
             }
             break;
           case TIPS_TYPE_WIFI_CONECTED:
-            if (tips_disp.timer_count >= 3 * 1000) {
+            if (tips_disp.timer_count >= SEC_TO_MS(3)) {
               tips_disp.timer = TIPS_TIMER_STOP;
               tips_disp.timer_count = 0;
 
@@ -994,7 +994,7 @@ void clear_cur_ui() {
     case LEVELING_SETTIGNS_UI:        break;
     case LEVELING_PARA_UI:            lv_clear_level_settings(); break;
     case DELTA_LEVELING_PARA_UI:      break;
-    case MANUAL_LEVELING_POSIGION_UI: lv_clear_manual_level_pos_settings(); break;
+    case MANUAL_LEVELING_POSIGION_UI: lv_clear_tramming_pos_settings(); break;
     case MAXFEEDRATE_UI:              lv_clear_max_feedrate_settings(); break;
     case STEPS_UI:                    lv_clear_step_settings(); break;
     case ACCELERATION_UI:             lv_clear_acceleration_settings(); break;
@@ -1077,6 +1077,7 @@ void draw_return_ui() {
         case NOZZLE_PROBE_OFFSET_UI:    lv_draw_auto_level_offset_settings(); break;
       #endif
       case TOOL_UI:                     lv_draw_tool(); break;
+      case GCODE_UI:                    lv_draw_gcode(); break;
       case MESHLEVELING_UI:             break;
       case HARDWARE_TEST_UI:            break;
       #if ENABLED(MKS_WIFI_MODULE)
@@ -1098,7 +1099,7 @@ void draw_return_ui() {
       case LEVELING_SETTIGNS_UI:        break;
       case LEVELING_PARA_UI:            lv_draw_level_settings(); break;
       case DELTA_LEVELING_PARA_UI:      break;
-      case MANUAL_LEVELING_POSIGION_UI: lv_draw_manual_level_pos_settings(); break;
+      case MANUAL_LEVELING_POSIGION_UI: lv_draw_tramming_pos_settings(); break;
       case MAXFEEDRATE_UI:              lv_draw_max_feedrate_settings(); break;
       case STEPS_UI:                    lv_draw_step_settings(); break;
       case ACCELERATION_UI:             lv_draw_acceleration_settings(); break;

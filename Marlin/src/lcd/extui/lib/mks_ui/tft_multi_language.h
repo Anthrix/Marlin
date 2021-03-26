@@ -103,7 +103,7 @@ typedef struct machine_common_disp{
 
   const char *LevelingParaConfTitle;
   const char *LevelingParaConf;
-  const char *LevelingManuPosConf;
+  const char *TrammingPosConf;
   const char *LevelingAutoCommandConf;
   const char *LevelingAutoZoffsetConf;
 
@@ -464,6 +464,8 @@ typedef struct more_menu_disp {
   const char *custom5;
   const char *custom6;
   const char *custom7;
+  const char *gcode;
+  const char *entergcode;
   const char *back;
 } more_menu_def;
 
